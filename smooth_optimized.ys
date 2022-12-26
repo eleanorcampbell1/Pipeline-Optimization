@@ -1,0 +1,98 @@
+main:
+    irmovq	$size, %rsi         # rsi = &size
+	irmovq	$stack, %rsp        # rsp = stack address
+	irmovq	$data, %rdi         # rdi = &array
+	mrmovq	0(%rsi), %rsi       # rsi = n
+	call	smooth
+	halt
+
+smooth:
+    irmovq $8, %r11             # r11 = 8
+    rrmovq %rdi, %r9            # r14 = &array
+    rrmovq  %rdi, %rcx          # rcx = &array
+    rrmovq %rdi, %r8            # r8 = &array[i-1]
+    pushq %r12
+    irmovq $2, %r10             # r10 = 2
+    addq %r11, %rcx             # rcx = &array[i]
+    rrmovq %rsi, %rdx           # rdx = n
+    pushq %r14
+    addq %r11, %r9              # r9 = &array[i] == &array[1]
+    mrmovq (%r8), %r8           # r8 = array[i - 1]
+    mulq %r11, %rsi             # r13 = n*8 (number of bytes in array)
+    mrmovq (%rcx), %rcx         # rcx = array[i]
+    rrmovq  %r9, %rdi           # rdi = &array[i]
+    pushq %r13
+    subq	%r11, %rsi          # rdx = (n - 1)*8
+    irmovq $4, %r13             # r13 = 4
+    addq %r11, %rdi             # rdi = &array[i+1]
+    rrmovq %r8, %r12            # r12 = array[i-1]
+    subq %r11, %rsi             #
+    subq %r10, %rdx             # rdx = n - 2
+    mrmovq (%rdi), %rdi         # r12 = array[i+1]
+	jle	done                    # if i >= n - 1, goto done
+	#21 vs 18
+
+test:
+	addq %rdi, %r12             # r12 = array[i-1]+array[i+1]
+	mulq	%r10, %rcx          # rcx = array[i] * 2
+	#rrmovq %r9, %rax            # rax = &array[i]
+	addq %r11, %r9              # r9 = next &array[i] == &array[i+1]
+	addq	%rcx, %r12          # rdx = array[i-1] + array[i]
+    #rrmovq  %r9, %rdi           # rdi = &array[i]
+    mrmovq  8(%r9), %rdi           # rdi = &array[i]
+    mrmovq  (%r9), %rcx         # rcx = array[i]
+	divq	%r13, %r12          # r12 = r12 / 2
+    #addq %r11, %rdi             # rdi = &array[i+1]
+	subq %r11, %rsi             # rsi = (n - 1)-i
+    #rmmovq  %r12, 0(%rax)       # array[i] = r8 = avg(...)
+    rmmovq  %r12, -8(%r9)       # array[i] = r8 = avg(...)
+    #mrmovq (%rdi), %rdi         # rdi = array[i+1]
+	jg test
+	# 22 cycles for loop; HAS TO BE < 26 (including jump bubbles)
+done:
+    popq %r13
+    popq %r14       #4 stalls
+    popq %r12
+	ret
+
+# Array with 32 elements
+.pos	0x2000
+size:
+#.quad	32
+.quad	3           # just 3 items in array
+data:
+.quad	11
+.quad	12
+.quad	10
+.quad	5
+.quad	1
+.quad	8
+.quad	15
+.quad	0
+.quad	1
+.quad	8
+.quad	13
+.quad	5
+.quad	6
+.quad	5
+.quad	9
+.quad	12
+.quad	4
+.quad	15
+.quad	5
+.quad	14
+.quad	15
+.quad	2
+.quad	7
+.quad	16
+.quad	13
+.quad	8
+.quad	15
+.quad	1
+.quad	14
+.quad	11
+.quad	0
+.quad	8
+
+.pos 0x5000
+stack:
